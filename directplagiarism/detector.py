@@ -124,44 +124,46 @@ class DirectPlagiarismDetector:
         matches: list[dict] = []
         seen_keys: set[tuple[int, int, int]] = set()
 
-        for start_index, ngram in enumerate(submission_ngrams):
+        for ngram, submission_positions in submission_ngrams.items():
             ref_positions = reference_ngrams.get(ngram)
             if not ref_positions:
                 continue
 
-            gram_tokens = list(ngram)
-            sub_offset = start_index
-            ref_offset = ref_positions[0]
+            for sub_offset in submission_positions:
+                for ref_offset in ref_positions:
+                    sub_start = sub_offset
+                    ref_start = ref_offset
+                    gram_length = len(ngram)
 
-            while sub_offset > 0 and ref_offset > 0 and submission_tokens[sub_offset - 1] == reference_tokens[ref_offset - 1]:
-                sub_offset -= 1
-                ref_offset -= 1
+                    while sub_start > 0 and ref_start > 0 and submission_tokens[sub_start - 1] == reference_tokens[ref_start - 1]:
+                        sub_start -= 1
+                        ref_start -= 1
 
-            sub_end = start_index + len(gram_tokens)
-            ref_end = ref_positions[0] + len(gram_tokens)
-            while sub_end < len(submission_tokens) and ref_end < len(reference_tokens) and submission_tokens[sub_end] == reference_tokens[ref_end]:
-                sub_end += 1
-                ref_end += 1
+                    sub_end = sub_offset + gram_length
+                    ref_end = ref_offset + gram_length
+                    while sub_end < len(submission_tokens) and ref_end < len(reference_tokens) and submission_tokens[sub_end] == reference_tokens[ref_end]:
+                        sub_end += 1
+                        ref_end += 1
 
-            length = sub_end - sub_offset
-            if length < self.min_passage_length:
-                continue
-            match_key = (sub_offset, ref_offset, length)
-            if match_key in seen_keys:
-                continue
-            seen_keys.add(match_key)
+                    length = sub_end - sub_start
+                    if length < self.min_passage_length:
+                        continue
+                    match_key = (sub_start, ref_start, length)
+                    if match_key in seen_keys:
+                        continue
+                    seen_keys.add(match_key)
 
-            matches.append(
-                {
-                    "match_type": "near_exact",
-                    "submission_index": sub_offset,
-                    "reference_index": ref_offset,
-                    "length": length,
-                    "similarity": round(min(1.0, length / max(self.ngram_size, 1)), 4),
-                    "submission_excerpt": " ".join(submission_tokens[sub_offset:sub_end]),
-                    "reference_excerpt": " ".join(reference_tokens[ref_offset:ref_end]),
-                }
-            )
+                    matches.append(
+                        {
+                            "match_type": "near_exact",
+                            "submission_index": sub_start,
+                            "reference_index": ref_start,
+                            "length": length,
+                            "similarity": round(min(1.0, length / max(self.ngram_size, 1)), 4),
+                            "submission_excerpt": " ".join(submission_tokens[sub_start:sub_end]),
+                            "reference_excerpt": " ".join(reference_tokens[ref_start:ref_end]),
+                        }
+                    )
 
         return matches
 
@@ -199,6 +201,9 @@ class DirectPlagiarismDetector:
         exact_score = max(0.0, sum(match["similarity"] for match in filtered_matches if match["match_type"] == "exact") / max(len(submission_sentences) or 1, 1))
         near_score = max(0.0, sum(match["similarity"] for match in filtered_matches if match["match_type"] == "near_exact") / max(len(submission_sentences) or 1, 1))
         overall_similarity = min(1.0, 0.5 * exact_score + 0.4 * near_score + 0.2 * tfidf_score)
+
+        for match in filtered_matches:
+            match["reference_document"] = reference_name
 
         result = {
             "reference_document": reference_name,

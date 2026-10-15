@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 
 from flask import Flask, flash, redirect, render_template, request, send_file, url_for
 from werkzeug.utils import secure_filename
+
+# Support both `python document\app.py` and `python -m document.app`.
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from directplagiarism.detector import DirectPlagiarismDetector
 from directplagiarism.extraction import extract_text_from_file, is_empty_or_weak_text

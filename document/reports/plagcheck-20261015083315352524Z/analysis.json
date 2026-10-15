@@ -1,0 +1,37 @@
+{
+  "framework": "AI-Based Plagiarism Detection Framework",
+  "version": "0.1",
+  "report_id": "plagcheck-20261015083315352524Z",
+  "submission_filename": "srs.pdf",
+  "analysis_timestamp": "2026-10-15T08:33:15.355189+00:00",
+  "reference_documents": [
+    "srs.pdf"
+  ],
+  "overall_similarity": 0.2102,
+  "score_breakdown": {
+    "exact": 0.0204,
+    "near_exact": 0.0,
+    "tfidf": 1.0
+  },
+  "matching_passage_count": 1,
+  "matches": [
+    {
+      "match_type": "exact",
+      "submission_index": 0,
+      "reference_index": 0,
+      "length": 476,
+      "similarity": 1.0,
+      "submission_excerpt": "Software Requirement Specifications AI-Based Plagiarism Detection Framework Prepared for: Dr. software requirement specifications ai based plagiarism detection framework prepare...",
+      "reference_excerpt": "Software Requirement Specifications AI-Based Plagiarism Detection Framework Prepared for: Dr. software requirement specifications ai based plagiarism detection framework prepare...",
+      "reference_document": "srs.pdf"
+    }
+  ],
+  "status": "Review required",
+  "methodology": "Normalized text comparison, sentence-level exact/near-exact overlap, and TF-IDF cosine similarity are combined to assess potential direct copying without asserting guilt from a single score.",
+  "limitations": [
+    "Text extraction can fail for unsupported or corrupted documents.",
+    "OCR for scanned PDFs is marked as work in progress unless explicitly implemented.",
+    "Some phrase reuse may be legitimate common wording, so the engine reports evidence rather than definitive plagiarism."
+  ],
+  "known_detection_status": "Document comparison completed using configured thresholds. Results indicate evidence of direct overlap only when qualifying passage matches are present."
+}
