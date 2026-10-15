@@ -1,1 +1,1 @@
-hello world and more text for direct comparison. hello world and more text for direct comparison.
+This project uses a Flask application and a direct plagiarism detector for document analysis. It checks exact overlap and repeated phrases across reference documents.
