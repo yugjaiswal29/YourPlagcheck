@@ -1,42 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>Analyze Document</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <div class="container">
-            <header>
-                <h1>Direct Plagiarism Analysis</h1>
-                <p>Upload a submission and reference materials for comparison.</p>
-            </header>
+{% extends "base.html" %}
+{% block title %}New analysis{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('dashboard') }}">Overview</a> / New analysis{% endblock %}
+{% block content %}
+    <section class="page-intro">
+        <div class="eyebrow"><span class="eyebrow-line"></span> NEW REVIEW</div>
+        <h1>Start an <em>analysis.</em></h1>
+        <p class="lead">Choose the document you want to review, then add the sources it should be compared against.</p>
+    </section>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert {{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <form method="POST" enctype="multipart/form-data" class="form-grid">
-                <div>
-                    <label for="document">Submission document</label>
-                    <div class="upload-box">
-                        <input type="file" name="document" id="document" required>
+    <div class="analysis-layout">
+        <form method="POST" enctype="multipart/form-data" class="panel analysis-form" id="analysis-form">
+            <div class="form-section-heading">
+                <span class="step-number">01</span>
+                <div><h2>Add your documents</h2><p>Text in each document is extracted locally for comparison.</p></div>
+            </div>
+            <div class="upload-grid">
+                <div class="upload-field">
+                    <label for="document">Submission document <span class="required-mark">*</span></label>
+                    <div class="dropzone" data-dropzone>
+                        <input type="file" name="document" id="document" accept=".pdf,.docx,.txt" required>
+                        <span class="upload-icon" aria-hidden="true">↑</span>
+                        <strong>Choose a submission</strong>
+                        <span class="drop-help">Drag a file here or <span class="browse-word">browse</span></span>
+                        <span class="file-help">PDF, DOCX, or TXT · up to 16 MB</span>
+                        <span class="selected-files" data-file-list></span>
                     </div>
                 </div>
-
-                <div>
-                    <label for="reference_documents">Reference documents</label>
-                    <div class="upload-box">
-                        <input type="file" name="reference_documents" id="reference_documents" multiple required>
+                <div class="upload-field">
+                    <label for="reference_documents">Reference documents <span class="required-mark">*</span></label>
+                    <div class="dropzone dropzone-multiple" data-dropzone>
+                        <input type="file" name="reference_documents" id="reference_documents" accept=".pdf,.docx,.txt" multiple required>
+                        <span class="upload-icon upload-icon-source" aria-hidden="true">＋</span>
+                        <strong>Add comparison sources</strong>
+                        <span class="drop-help">Select one or more reference files</span>
+                        <span class="file-help">Only the sources you provide are checked</span>
+                        <span class="selected-files" data-file-list></span>
                     </div>
                 </div>
+            </div>
 
-                <button type="submit">Run analysis</button>
-            </form>
-        </div>
-    </body>
-</html>
+            <div class="privacy-note">
+                <span class="privacy-icon" aria-hidden="true">⌑</span>
+                <span><strong>Your work stays in your workspace.</strong> Files are processed locally by this app and are not sent to an external matching service.</span>
+            </div>
+
+            <div class="form-actions">
+                <a class="button button-quiet" href="{{ url_for('dashboard') }}">Cancel</a>
+                <button class="button button-primary" type="submit">Compare documents <span class="button-arrow" aria-hidden="true">→</span></button>
+            </div>
+        </form>
+
+        <aside class="analysis-aside">
+            <div class="aside-card">
+                <div class="aside-illustration" aria-hidden="true"><span class="sheet sheet-back"></span><span class="sheet sheet-front"><i></i><i></i><i></i><b></b></span><span class="spark spark-one">✦</span><span class="spark spark-two">✳</span></div>
+                <span class="eyebrow">WHAT HAPPENS NEXT</span>
+                <h2>Evidence, not assumptions.</h2>
+                <p>The framework looks for matching passages and broader text similarity. Similarity is one signal for review, not a conclusion about intent.</p>
+            </div>
+            <div class="format-card">
+                <span class="format-label">SUPPORTED FORMATS</span>
+                <div class="format-tags"><span>PDF</span><span>DOCX</span><span>TXT</span></div>
+                <p>Scanned PDFs without selectable text may not be readable. OCR support is not available yet.</p>
+            </div>
+        </aside>
+    </div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='app.js') }}" defer></script>{% endblock %}

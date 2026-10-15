@@ -1,0 +1,1 @@
+A submitted document can be compared with provided references to find exact or near-exact matching passages.

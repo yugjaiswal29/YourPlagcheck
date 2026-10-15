@@ -1,23 +1,81 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>YourPlagcheck Dashboard</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <div class="container">
-            <header>
-                <h1>AI-Based Plagiarism Detection Framework</h1>
-                <p>Version 0.1 dashboard</p>
-            </header>
-
-            <div class="summary-box">
-                <p>Upload a submission document and one or more reference documents to review direct-copy overlap, sentence-level matches, and similarity evidence.</p>
-                <p><strong>Supported formats:</strong> TXT, PDF, DOCX, and legacy DOC (imported only when the file can be processed).</p>
-            </div>
-
-            <p><a href="{{ url_for('analyze') }}"><button type="button">Open analysis workspace</button></a></p>
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block breadcrumb %}Overview{% endblock %}
+{% block content %}
+    <section class="welcome-row dashboard-welcome">
+        <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> YOUR REVIEW WORKSPACE</div>
+            <h1>Welcome to your<br><em>analysis dashboard.</em></h1>
+            <p class="lead">Review your recent document checks, see workspace metrics, or start a new direct-plagiarism analysis.</p>
         </div>
-    </body>
-</html>
+        <a class="button button-primary" href="{{ url_for('analyze') }}"><span aria-hidden="true">＋</span> New analysis <span class="button-arrow" aria-hidden="true">↗</span></a>
+    </section>
+
+    <section class="overview-grid" aria-label="Workspace summary">
+        <article class="stat-card">
+            <div class="stat-icon icon-lilac" aria-hidden="true">◉</div>
+            <div><span class="stat-label">DOCUMENT ANALYSES</span><strong>{{ report_count }}</strong><small>Saved in this workspace</small></div>
+            <span class="stat-accent accent-lilac"></span>
+        </article>
+        <article class="stat-card">
+            <div class="stat-icon icon-mint" aria-hidden="true">⌕</div>
+            <div><span class="stat-label">AVERAGE SIMILARITY</span><strong>{{ (average_similarity * 100)|round(1) }}%</strong><small>Across saved analyses</small></div>
+            <span class="stat-accent accent-mint"></span>
+        </article>
+        <article class="stat-card stat-card-note">
+            <div class="stat-icon icon-peach" aria-hidden="true">▧</div>
+            <div><span class="stat-label">REFERENCE DOCUMENTS</span><strong>{{ reference_count }}</strong><small>Compared across saved analyses</small></div>
+            <span class="stat-accent accent-peach"></span>
+        </article>
+    </section>
+
+    <section class="dashboard-columns">
+        <div class="panel recent-panel">
+            <div class="panel-heading">
+                <div><span class="eyebrow">RECENT ACTIVITY</span><h2>Latest analyses</h2></div>
+                <a class="text-link" href="{{ url_for('list_reports') }}">View history <span aria-hidden="true">→</span></a>
+            </div>
+            {% if recent_reports %}
+                <div class="report-list">
+                    {% for item in recent_reports %}
+                        <a class="report-row" href="{{ url_for('view_report', report_id=item.report_id) }}">
+                            <span class="file-badge" aria-hidden="true">DOC</span>
+                            <span class="report-row-main"><strong>{{ item.submission_filename }}</strong><small>{{ item.analysis_timestamp[:10] }} · {{ item.reference_count }} reference{% if item.reference_count != 1 %}s{% endif %}</small></span>
+                            <span class="score-pill {% if item.overall_similarity >= 0.2 %}score-review{% else %}score-clear{% endif %}">{{ (item.overall_similarity * 100)|round(1) }}%</span>
+                            <span class="row-chevron" aria-hidden="true">›</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-illustration" aria-hidden="true"><span>✳</span><span>▤</span></div>
+                    <h3>Your workspace is ready</h3>
+                    <p>Your completed analyses will show here. Start with a submission and add the sources you want to compare.</p>
+                    <a class="text-link" href="{{ url_for('analyze') }}">Create your first analysis <span aria-hidden="true">→</span></a>
+                </div>
+            {% endif %}
+        </div>
+
+        <aside class="panel guide-panel">
+            <div class="guide-topline"><span class="guide-icon" aria-hidden="true">✦</span><span>SIMILARITY SNAPSHOT</span></div>
+            <h2>Recent comparison scores</h2>
+            <p>Scores from the latest saved reports. This chart summarizes comparisons and does not indicate a plagiarism verdict.</p>
+            {% if trend_reports %}
+                <div class="trend-chart" role="img" aria-label="Similarity percentages for the latest saved analyses">
+                    {% for item in trend_reports %}
+                        <a class="trend-column" href="{{ url_for('view_report', report_id=item.report_id) }}" title="{{ item.submission_filename }}: {{ (item.overall_similarity * 100)|round(1) }}%">
+                            <span class="trend-value">{{ (item.overall_similarity * 100)|round(0)|int }}%</span>
+                            <span class="trend-bar-wrap"><span class="trend-bar" style="height: {{ [item.overall_similarity * 100, 8]|max }}%"></span></span>
+                            <span class="trend-label">{{ item.analysis_timestamp[5:10] }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="trend-empty">Your comparison trend will appear after your first analysis.</div>
+            {% endif %}
+            <div class="guide-rule"></div>
+            <div class="snapshot-note"><span class="snapshot-dot"></span> Similarity is a review signal. Interpret matches in context.</div>
+            <a class="guide-link" href="{{ url_for('work_in_progress', module='analytics') }}">More analytics <span aria-hidden="true">↗</span></a>
+        </aside>
+    </section>
+{% endblock %}

@@ -1,177 +1,206 @@
 from __future__ import annotations
 
 import hashlib
-import math
 import re
 import unicodedata
-from collections import defaultdict
-from typing import Iterable
+from difflib import SequenceMatcher
+from typing import Iterable, TypedDict
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from .extraction import build_excerpt, is_empty_or_weak_text, normalize_whitespace, split_sentences, tokenize_words
+
+class _MatchGroup(TypedDict):
+    sub_start: int
+    sub_end: int
+    ref_start: int
+    ref_end: int
+    matched: int
+    submission_indices: list[int]
+    has_edits: bool
 
 
 class DirectPlagiarismDetector:
     def __init__(
         self,
-        ngram_size: int = 5,
         min_passage_length: int = 5,
-        similarity_threshold: float = 0.2,
+        near_exact_threshold: float = 0.8,
+        max_edit_gap: int = 2,
     ) -> None:
-        self.ngram_size = ngram_size
+        if min_passage_length < 1:
+            raise ValueError("min_passage_length must be positive.")
+        if not 0 < near_exact_threshold <= 1:
+            raise ValueError("near_exact_threshold must be between 0 and 1.")
+        if max_edit_gap < 0:
+            raise ValueError("max_edit_gap cannot be negative.")
+
         self.min_passage_length = min_passage_length
-        self.similarity_threshold = similarity_threshold
+        self.near_exact_threshold = near_exact_threshold
+        self.max_edit_gap = max_edit_gap
 
-    def _normalize_text(self, text: str) -> str:
-        value = unicodedata.normalize("NFKC", text or "")
-        value = value.replace("\r\n", "\n").replace("\r", "\n")
-        value = re.sub(r"[\u2019\u2018]", "'", value)
-        value = re.sub(r"[\u201C\u201D]", '"', value)
-        value = re.sub(r"\s+", " ", value)
-        value = value.lower()
-        value = re.sub(r"[^\w\s]", " ", value, flags=re.UNICODE)
-        return re.sub(r"\s+", " ", value).strip()
+    def _normalized_tokens(self, text: str) -> tuple[list[str], list[tuple[int, int]]]:
+        tokens: list[str] = []
+        spans: list[tuple[int, int]] = []
+        token_start: int | None = None
+        for index, character in enumerate(text):
+            category = unicodedata.category(character)
+            is_token_character = category[0] in {"L", "N", "M"} or category == "Pc"
+            if is_token_character and token_start is None:
+                token_start = index
+            elif not is_token_character and token_start is not None:
+                tokens.append(unicodedata.normalize("NFKC", text[token_start:index]).casefold())
+                spans.append((token_start, index))
+                token_start = None
+        if token_start is not None:
+            tokens.append(unicodedata.normalize("NFKC", text[token_start:]).casefold())
+            spans.append((token_start, len(text)))
+        return tokens, spans
 
-    def _sentences_from_text(self, text: str) -> list[str]:
-        return [sentence.strip() for sentence in split_sentences(text, minimum_length=3) if sentence.strip()]
+    def _sentence_index(self, text: str, position: int) -> int:
+        return len(re.findall(r"[.!?](?:[\"')\]]*)\s+|\n+", text[:position]))
 
     def _document_similarity(self, submission_text: str, reference_text: str) -> float:
-        submission_tokens = self._normalize_text(submission_text)
-        reference_tokens = self._normalize_text(reference_text)
-        if not submission_tokens or not reference_tokens:
+        if not submission_text.strip() or not reference_text.strip():
             return 0.0
 
-        vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2), lowercase=True)
-        matrix = vectorizer.fit_transform([submission_tokens, reference_tokens])
-        similarity = cosine_similarity(matrix[0:1], matrix[1:2])[0][0]
-        return float(similarity)
+        try:
+            vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2))
+            matrix = vectorizer.fit_transform([submission_text, reference_text])
+        except ValueError:
+            # For example, both documents may contain only English stop words.
+            return 0.0
+        return float(cosine_similarity(matrix[0:1], matrix[1:2])[0][0])
 
-    def _match_sentence_pairs(self, submission_sentences: list[str], reference_sentences: list[str]) -> list[dict]:
-        matches: list[dict] = []
-        seen: set[tuple[int, int, int]] = set()
+    def _matching_groups(
+        self,
+        submission_tokens: list[str],
+        reference_tokens: list[str],
+    ) -> list[_MatchGroup]:
+        matcher = SequenceMatcher(None, submission_tokens, reference_tokens, autojunk=False)
+        groups: list[_MatchGroup] = []
 
-        for i, sub_sentence in enumerate(submission_sentences):
-            sub_norm = self._normalize_text(sub_sentence)
-            if len(sub_norm.split()) < self.min_passage_length:
+        for tag, sub_start, sub_end, ref_start, ref_end in matcher.get_opcodes():
+            if tag != "equal":
                 continue
-            for j, ref_sentence in enumerate(reference_sentences):
-                ref_norm = self._normalize_text(ref_sentence)
-                if not ref_norm:
+
+            if groups:
+                previous = groups[-1]
+                sub_gap = sub_start - int(previous["sub_end"])
+                ref_gap = ref_start - int(previous["ref_end"])
+                candidate_matched = int(previous["matched"]) + sub_end - sub_start
+                candidate_length = max(
+                    sub_end - int(previous["sub_start"]),
+                    ref_end - int(previous["ref_start"]),
+                )
+                if (
+                    sub_gap >= 0
+                    and ref_gap >= 0
+                    and max(sub_gap, ref_gap) <= self.max_edit_gap
+                    and candidate_matched / candidate_length >= self.near_exact_threshold
+                ):
+                    previous["sub_end"] = sub_end
+                    previous["ref_end"] = ref_end
+                    previous["matched"] = int(previous["matched"]) + sub_end - sub_start
+                    previous["submission_indices"].extend(range(sub_start, sub_end))
+                    previous["has_edits"] = bool(previous["has_edits"]) or sub_gap > 0 or ref_gap > 0
                     continue
-                if sub_norm == ref_norm:
-                    key = (i, j, len(sub_norm.split()))
-                    if key not in seen:
-                        seen.add(key)
-                        matches.append(
-                            {
-                                "match_type": "exact",
-                                "submission_index": i,
-                                "reference_index": j,
-                                "length": len(sub_norm.split()),
-                                "similarity": 1.0,
-                                "submission_excerpt": sub_sentence,
-                                "reference_excerpt": ref_sentence,
-                            }
-                        )
-                else:
-                    overlap = self._sequence_overlap(sub_norm, ref_norm)
-                    if overlap >= 0.75:
-                        length = max(len(sub_norm.split()), len(ref_norm.split()))
-                        key = (i, j, length)
-                        if key not in seen:
-                            seen.add(key)
-                            matches.append(
-                                {
-                                    "match_type": "near_exact",
-                                    "submission_index": i,
-                                    "reference_index": j,
-                                    "length": length,
-                                    "similarity": round(overlap, 4),
-                                    "submission_excerpt": sub_sentence,
-                                    "reference_excerpt": ref_sentence,
-                                }
-                            )
-        return matches
 
-    def _sequence_overlap(self, left: str, right: str) -> float:
-        left_tokens = left.split()
-        right_tokens = right.split()
-        if not left_tokens or not right_tokens:
-            return 0.0
+            groups.append(
+                {
+                    "sub_start": sub_start,
+                    "sub_end": sub_end,
+                    "ref_start": ref_start,
+                    "ref_end": ref_end,
+                    "matched": sub_end - sub_start,
+                    "submission_indices": list(range(sub_start, sub_end)),
+                    "has_edits": False,
+                }
+            )
 
-        common_tokens = set(left_tokens) & set(right_tokens)
-        if not common_tokens:
-            return 0.0
-        return len(common_tokens) / max(len(set(left_tokens) | set(right_tokens)), 1)
+        return groups
 
-    def _token_ngram_matches(self, submission_text: str, reference_text: str) -> list[dict]:
-        submission_tokens = tokenize_words(submission_text)
-        reference_tokens = tokenize_words(reference_text)
-        if len(submission_tokens) < self.min_passage_length or len(reference_tokens) < self.min_passage_length:
+    def _find_matches(
+        self,
+        submission_text: str,
+        reference_text: str,
+        reference_name: str,
+    ) -> list[dict]:
+        submission_tokens, submission_spans = self._normalized_tokens(submission_text)
+        reference_tokens, reference_spans = self._normalized_tokens(reference_text)
+        if not submission_tokens or not reference_tokens:
             return []
 
-        submission_ngrams: dict[tuple[str, ...], list[int]] = defaultdict(list)
-        reference_ngrams: dict[tuple[str, ...], list[int]] = defaultdict(list)
-
-        for idx in range(len(submission_tokens) - self.ngram_size + 1):
-            submission_ngrams[tuple(submission_tokens[idx: idx + self.ngram_size])].append(idx)
-
-        for idx in range(len(reference_tokens) - self.ngram_size + 1):
-            reference_ngrams[tuple(reference_tokens[idx: idx + self.ngram_size])].append(idx)
-
         matches: list[dict] = []
-        seen_keys: set[tuple[int, int, int]] = set()
+        for group in self._matching_groups(submission_tokens, reference_tokens):
+            sub_start = int(group["sub_start"])
+            sub_end = int(group["sub_end"])
+            ref_start = int(group["ref_start"])
+            ref_end = int(group["ref_end"])
+            matched_words = int(group["matched"])
+            passage_length = sub_end - sub_start
+            comparison_length = max(passage_length, ref_end - ref_start)
 
-        for ngram, submission_positions in submission_ngrams.items():
-            ref_positions = reference_ngrams.get(ngram)
-            if not ref_positions:
+            if matched_words < self.min_passage_length:
                 continue
 
-            for sub_offset in submission_positions:
-                for ref_offset in ref_positions:
-                    sub_start = sub_offset
-                    ref_start = ref_offset
-                    gram_length = len(ngram)
+            sequence_similarity = matched_words / comparison_length
+            is_near_exact = bool(group["has_edits"])
+            if is_near_exact and sequence_similarity < self.near_exact_threshold:
+                # Do not bridge edits unless the surrounding ordered sequence
+                # remains sufficiently close.
+                continue
 
-                    while sub_start > 0 and ref_start > 0 and submission_tokens[sub_start - 1] == reference_tokens[ref_start - 1]:
-                        sub_start -= 1
-                        ref_start -= 1
-
-                    sub_end = sub_offset + gram_length
-                    ref_end = ref_offset + gram_length
-                    while sub_end < len(submission_tokens) and ref_end < len(reference_tokens) and submission_tokens[sub_end] == reference_tokens[ref_end]:
-                        sub_end += 1
-                        ref_end += 1
-
-                    length = sub_end - sub_start
-                    if length < self.min_passage_length:
-                        continue
-                    match_key = (sub_start, ref_start, length)
-                    if match_key in seen_keys:
-                        continue
-                    seen_keys.add(match_key)
-
-                    matches.append(
-                        {
-                            "match_type": "near_exact",
-                            "submission_index": sub_start,
-                            "reference_index": ref_start,
-                            "length": length,
-                            "similarity": round(min(1.0, length / max(self.ngram_size, 1)), 4),
-                            "submission_excerpt": " ".join(submission_tokens[sub_start:sub_end]),
-                            "reference_excerpt": " ".join(reference_tokens[ref_start:ref_end]),
-                        }
-                    )
+            sub_char_start, sub_char_end = (
+                submission_spans[sub_start][0],
+                submission_spans[sub_end - 1][1],
+            )
+            ref_char_start, ref_char_end = (
+                reference_spans[ref_start][0],
+                reference_spans[ref_end - 1][1],
+            )
+            while sub_char_end < len(submission_text) and submission_text[sub_char_end] in ".,!?;:)]}\"'":
+                sub_char_end += 1
+            while ref_char_end < len(reference_text) and reference_text[ref_char_end] in ".,!?;:)]}\"'":
+                ref_char_end += 1
+            matches.append(
+                {
+                    "match_type": "near_exact" if is_near_exact else "exact",
+                    "submission_index": self._sentence_index(submission_text, sub_char_start),
+                    "reference_index": self._sentence_index(reference_text, ref_char_start),
+                    "submission_word_index": sub_start,
+                    "reference_word_index": ref_start,
+                    "length": passage_length,
+                    "matched_word_count": matched_words,
+                    "_submission_word_indices": group["submission_indices"],
+                    "similarity": round(sequence_similarity, 4),
+                    "submission_excerpt": submission_text[sub_char_start:sub_char_end],
+                    "reference_excerpt": reference_text[ref_char_start:ref_char_end],
+                    "reference_document": reference_name,
+                }
+            )
 
         return matches
 
-    def compare_submission_to_reference(self, submission_text: str, reference_text: str, reference_name: str) -> dict:
-        submission_clean = normalize_whitespace(submission_text or "")
-        reference_clean = normalize_whitespace(reference_text or "")
+    def _coverage(
+        self,
+        matches: list[dict],
+        token_count: int,
+        match_type: str | None = None,
+    ) -> float:
+        covered: set[int] = set()
+        for match in matches:
+            if match_type is not None and match["match_type"] != match_type:
+                continue
+            covered.update(match["_submission_word_indices"])
+        return len(covered) / token_count if token_count else 0.0
 
-        if not submission_clean or not reference_clean:
+    def compare_submission_to_reference(
+        self,
+        submission_text: str,
+        reference_text: str,
+        reference_name: str,
+    ) -> dict:
+        if not submission_text.strip() or not reference_text.strip():
             return {
                 "reference_document": reference_name,
                 "matches": [],
@@ -182,88 +211,55 @@ class DirectPlagiarismDetector:
                 "status": "No usable text extracted",
             }
 
-        submission_sentences = self._sentences_from_text(submission_text)
-        reference_sentences = self._sentences_from_text(reference_text)
-
-        exact_and_near_matches = self._match_sentence_pairs(submission_sentences, reference_sentences)
-        ngram_matches = self._token_ngram_matches(submission_text, reference_text)
-
-        aggregated_matches: list[dict] = []
-        for match in exact_and_near_matches:
-            aggregated_matches.append(match)
-        for match in ngram_matches:
-            aggregated_matches.append(match)
-
-        aggregated_matches = self._merge_overlapping_matches(aggregated_matches)
-        filtered_matches = [match for match in aggregated_matches if match["similarity"] >= self.similarity_threshold]
-
+        submission_tokens, _ = self._normalized_tokens(submission_text)
+        matches = self._find_matches(submission_text, reference_text, reference_name)
+        exact_score = self._coverage(matches, len(submission_tokens), "exact")
+        near_score = self._coverage(matches, len(submission_tokens), "near_exact")
+        overall_similarity = self._coverage(matches, len(submission_tokens))
         tfidf_score = self._document_similarity(submission_text, reference_text)
-        exact_score = max(0.0, sum(match["similarity"] for match in filtered_matches if match["match_type"] == "exact") / max(len(submission_sentences) or 1, 1))
-        near_score = max(0.0, sum(match["similarity"] for match in filtered_matches if match["match_type"] == "near_exact") / max(len(submission_sentences) or 1, 1))
-        overall_similarity = min(1.0, 0.5 * exact_score + 0.4 * near_score + 0.2 * tfidf_score)
 
-        for match in filtered_matches:
-            match["reference_document"] = reference_name
-
-        result = {
+        # Direct overlap coverage is the primary score. TF-IDF remains a
+        # separate contextual signal and cannot inflate the direct-match score.
+        for match in matches:
+            match.pop("_submission_word_indices")
+        return {
             "reference_document": reference_name,
-            "matches": filtered_matches,
-            "exact_matches": len([m for m in filtered_matches if m["match_type"] == "exact"]),
-            "near_exact_matches": len([m for m in filtered_matches if m["match_type"] == "near_exact"]),
+            "matches": matches,
+            "exact_matches": sum(match["match_type"] == "exact" for match in matches),
+            "near_exact_matches": sum(match["match_type"] == "near_exact" for match in matches),
             "overall_similarity": round(overall_similarity, 4),
             "score_breakdown": {
                 "exact": round(exact_score, 4),
                 "near_exact": round(near_score, 4),
-                "tfidf": round(float(tfidf_score), 4),
+                "tfidf": round(tfidf_score, 4),
             },
-            "status": "Qualifying overlap detected" if filtered_matches else "No qualifying matches detected",
+            "status": "Qualifying overlap detected" if matches else "No qualifying matches detected",
         }
-        return result
-
-    def _merge_overlapping_matches(self, matches: list[dict]) -> list[dict]:
-        if not matches:
-            return []
-
-        ordered = sorted(matches, key=lambda item: (item.get("submission_index", 0), item.get("reference_index", 0), item.get("length", 0)), reverse=False)
-        merged: list[dict] = []
-        for match in ordered:
-            if not merged:
-                merged.append(dict(match))
-                continue
-            current = merged[-1]
-            sub_overlap = match.get("submission_index", 0) <= current.get("submission_index", 0) + current.get("length", 0)
-            ref_overlap = match.get("reference_index", 0) <= current.get("reference_index", 0) + current.get("length", 0)
-            if sub_overlap and ref_overlap:
-                current["length"] = max(current.get("length", 0), match.get("length", 0))
-                current["similarity"] = max(current.get("similarity", 0.0), match.get("similarity", 0.0))
-                current["submission_excerpt"] = build_excerpt(current.get("submission_excerpt", "") + " " + match.get("submission_excerpt", ""))
-                current["reference_excerpt"] = build_excerpt(current.get("reference_excerpt", "") + " " + match.get("reference_excerpt", ""))
-            else:
-                merged.append(dict(match))
-        return merged
 
     def compare_documents(self, submission_text: str, reference_documents: Iterable[dict]) -> dict:
-        comparisons: list[dict] = []
-        weighted_scores: list[float] = []
-
-        for reference in reference_documents:
-            name = reference.get("filename") or reference.get("name") or "reference"
-            reference_text = reference.get("text") or ""
-            comparison = self.compare_submission_to_reference(submission_text, reference_text, name)
-            comparisons.append(comparison)
-            weighted_scores.append(comparison["overall_similarity"])
-
-        overall_score = max(weighted_scores) if weighted_scores else 0.0
-
+        comparisons = [
+            self.compare_submission_to_reference(
+                submission_text,
+                reference.get("text") or "",
+                reference.get("filename") or reference.get("name") or "reference",
+            )
+            for reference in reference_documents
+        ]
+        best_comparison = max(comparisons, key=lambda result: result["overall_similarity"], default=None)
+        overall_score = best_comparison["overall_similarity"] if best_comparison else 0.0
+        score_breakdown = best_comparison["score_breakdown"] if best_comparison else {
+            "exact": 0.0,
+            "near_exact": 0.0,
+            "tfidf": 0.0,
+        }
+        matches = [match for comparison in comparisons for match in comparison["matches"]]
         return {
-            "analysis_id": hashlib.sha256(str(len(comparisons) + overall_score).encode("utf-8")).hexdigest()[:12],
+            "analysis_id": hashlib.sha256(
+                f"{len(comparisons)}:{overall_score}:{len(matches)}".encode("utf-8")
+            ).hexdigest()[:12],
             "overall_similarity": round(overall_score, 4),
             "per_reference": comparisons,
-            "matches": [match for comparison in comparisons for match in comparison["matches"]],
-            "score_breakdown": {
-                "exact": round(max((comparison["score_breakdown"]["exact"] for comparison in comparisons), default=0.0), 4),
-                "near_exact": round(max((comparison["score_breakdown"]["near_exact"] for comparison in comparisons), default=0.0), 4),
-                "tfidf": round(max((comparison["score_breakdown"]["tfidf"] for comparison in comparisons), default=0.0), 4),
-            },
-            "status": "No qualifying matches detected" if overall_score < self.similarity_threshold else "Review required",
+            "matches": matches,
+            "score_breakdown": score_breakdown,
+            "status": "Review required" if matches else "No qualifying matches detected",
         }

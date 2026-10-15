@@ -1,0 +1,63 @@
+{
+  "framework": "AI-Based Plagiarism Framework",
+  "version": "0.1",
+  "report_id": "plagcheck-20261015085016605136Z",
+  "submission_filename": "student.txt",
+  "analysis_timestamp": "2026-10-15T08:50:16.605360+00:00",
+  "reference_documents": [
+    "source.txt"
+  ],
+  "overall_similarity": 0.7,
+  "score_breakdown": {
+    "exact": 1.0,
+    "near_exact": 0.0,
+    "tfidf": 1.0
+  },
+  "per_reference": [
+    {
+      "reference_document": "source.txt",
+      "matches": [
+        {
+          "match_type": "exact",
+          "submission_index": 0,
+          "reference_index": 0,
+          "length": 17,
+          "similarity": 1.0,
+          "submission_excerpt": "This framework compares academic documents and finds exact matching passages to help reviewers inspect source similarity evidence. this framework compares academic documents and...",
+          "reference_excerpt": "This framework compares academic documents and finds exact matching passages to help reviewers inspect source similarity evidence. this framework compares academic documents and...",
+          "reference_document": "source.txt"
+        }
+      ],
+      "exact_matches": 1,
+      "near_exact_matches": 0,
+      "overall_similarity": 0.7,
+      "score_breakdown": {
+        "exact": 1.0,
+        "near_exact": 0.0,
+        "tfidf": 1.0
+      },
+      "status": "Qualifying overlap detected"
+    }
+  ],
+  "matching_passage_count": 1,
+  "matches": [
+    {
+      "match_type": "exact",
+      "submission_index": 0,
+      "reference_index": 0,
+      "length": 17,
+      "similarity": 1.0,
+      "submission_excerpt": "This framework compares academic documents and finds exact matching passages to help reviewers inspect source similarity evidence. this framework compares academic documents and...",
+      "reference_excerpt": "This framework compares academic documents and finds exact matching passages to help reviewers inspect source similarity evidence. this framework compares academic documents and...",
+      "reference_document": "source.txt"
+    }
+  ],
+  "status": "Review required",
+  "methodology": "The displayed overall score uses the highest-scoring reference: 50% sentence-level exact overlap, 40% qualifying near-exact overlap, and 20% TF-IDF cosine similarity, capped at 100%. Passage evidence is reported separately. TF-IDF measures broad vocabulary similarity and is not proof of copying.",
+  "limitations": [
+    "Text extraction can fail for unsupported or corrupted documents.",
+    "OCR for scanned PDFs is marked as work in progress unless explicitly implemented.",
+    "Some phrase reuse may be legitimate common wording, so the engine reports evidence rather than definitive plagiarism."
+  ],
+  "known_detection_status": "Document comparison completed using configured thresholds. Results indicate evidence of direct overlap only when qualifying passage matches are present."
+}

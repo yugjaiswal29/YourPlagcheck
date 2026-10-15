@@ -1,66 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>Plagiarism Report</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <div class="container">
-            <header>
-                <h1>{{ report.framework }} v{{ report.version }}</h1>
-                <p>Report ID: <strong>{{ report.report_id }}</strong></p>
-            </header>
+{% extends "base.html" %}
+{% block title %}Analysis report{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('dashboard') }}">Overview</a> / Report{% endblock %}
+{% block content %}
+    <section class="report-heading">
+        <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> ANALYSIS REPORT</div>
+            <h1>Similarity <em>overview.</em></h1>
+            <p class="lead">Review the comparison signals and the passages that contributed to them.</p>
+        </div>
+        <a class="button button-primary" href="{{ url_for('download_report', report_id=report.report_id) }}"><span aria-hidden="true">↓</span> Download report</a>
+    </section>
 
-            <div class="summary-box">
-                <p><strong>Submission:</strong> {{ report.submission_filename }}</p>
-                <p><strong>Analysis time:</strong> {{ report.analysis_timestamp }}</p>
-                <p><strong>Overall similarity:</strong> {{ report.overall_similarity }}</p>
-                <p><strong>Status:</strong> {{ report.status }}</p>
+    <section class="report-meta-bar">
+        <span class="report-file-icon" aria-hidden="true">DOC</span>
+        <span class="report-meta-main"><strong>{{ report.submission_filename }}</strong><small>{{ report.analysis_timestamp }} · Report {{ report.report_id }}</small></span>
+        <a class="text-link" href="{{ url_for('dashboard') }}">Back to overview <span aria-hidden="true">→</span></a>
+    </section>
+
+    <section class="report-score-grid" aria-label="Similarity summary">
+        <article class="score-feature">
+            <span class="stat-label">HIGHEST REFERENCE SIMILARITY</span>
+            <div class="score-feature-value">{{ (report.overall_similarity * 100)|round(1) }}<small>%</small></div>
+            <span class="score-feature-note"><span class="note-dot"></span> A signal for human review, not a verdict</span>
+            <div class="score-meter"><span style="width: {{ [report.overall_similarity * 100, 100]|min }}%"></span></div>
+        </article>
+        <article class="score-mini"><span class="score-mini-icon icon-lilac" aria-hidden="true">▤</span><span class="stat-label">PASSAGES FLAGGED</span><strong>{{ report.matching_passage_count }}</strong><small>Qualifying overlaps found</small></article>
+        <article class="score-mini"><span class="score-mini-icon icon-mint" aria-hidden="true">⌕</span><span class="stat-label">SOURCES COMPARED</span><strong>{{ report.reference_documents|length }}</strong><small>Provided for this analysis</small></article>
+    </section>
+
+    <section class="report-columns">
+        <div class="panel evidence-panel">
+            <div class="panel-heading">
+                <div><span class="eyebrow">PASSAGE-LEVEL EVIDENCE</span><h2>Matching passages</h2></div>
+                {% if report.matches %}<span class="subtle-count">{{ report.matches|length }} found</span>{% endif %}
             </div>
-
-            <h2>Methodology</h2>
-            <p>{{ report.methodology }}</p>
-
-            <h2>Score breakdown</h2>
-            <ul>
-                <li>Exact similarity: {{ report.score_breakdown.exact }}</li>
-                <li>Near-exact similarity: {{ report.score_breakdown.near_exact }}</li>
-                <li>TF-IDF cosine similarity: {{ report.score_breakdown.tfidf }}</li>
-            </ul>
-
-            <h2>Reference documents compared</h2>
-            <ul>
-                {% for reference in report.reference_documents %}
-                    <li>{{ reference }}</li>
-                {% endfor %}
-            </ul>
-
-            <h2>Matching passages</h2>
             {% if report.matches %}
-                {% for match in report.matches %}
-                    <div class="match-item">
-                        <p class="meta"><strong>Reference:</strong> {{ match.reference_document }} | <strong>Type:</strong> {{ match.match_type }} | <strong>Similarity:</strong> {{ match.similarity }}</p>
-                        <p><strong>Submission excerpt:</strong> <mark>{{ match.submission_excerpt }}</mark></p>
-                        <p><strong>Reference excerpt:</strong> {{ match.reference_excerpt }}</p>
+                <div class="evidence-list">
+                    {% for match in report.matches %}
+                        <article class="evidence-card">
+                            <div class="evidence-topline">
+                                <span class="match-type {% if match.match_type == 'exact' %}match-exact{% else %}match-near{% endif %}"><span></span>{{ match.match_type|replace('_', ' ')|title }} match</span>
+                                <span class="evidence-score">{{ (match.similarity * 100)|round(0)|int }}% sequence similarity</span>
+                            </div>
+                            <div class="evidence-source"><span class="source-icon" aria-hidden="true">↗</span><span><small>REFERENCE SOURCE</small><strong>{{ match.reference_document }}</strong></span><span class="word-count">{{ match.length }} words</span></div>
+                            <div class="passage-block {% if match.match_type == 'exact' %}passage-exact{% endif %}"><span class="passage-label">SUBMISSION</span><p><mark>{{ match.submission_excerpt }}</mark></p></div>
+                            <div class="passage-block passage-reference"><span class="passage-label">REFERENCE</span><p>{{ match.reference_excerpt }}</p></div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-matches">
+                    <span class="no-match-icon" aria-hidden="true">✓</span>
+                    <div><h3>No qualifying passages found</h3><p>No qualifying matches were detected under the configured comparison rules. This does not guarantee that text has no overlap with sources that were not provided.</p></div>
+                </div>
+            {% endif %}
+        </div>
+
+        <aside class="report-aside">
+            <div class="panel source-panel">
+                <span class="eyebrow">SOURCE BREAKDOWN</span>
+                <h2>Compared sources</h2>
+                {% for comparison in report.per_reference %}
+                    <div class="source-row">
+                        <span class="source-file-icon" aria-hidden="true">DOC</span>
+                        <span class="source-row-text"><strong>{{ comparison.reference_document }}</strong><small>{{ comparison.matches|length }} matching passages</small></span>
+                        <span class="source-percent">{{ (comparison.overall_similarity * 100)|round(1) }}%</span>
                     </div>
                 {% endfor %}
-            {% else %}
-                <p>No qualifying matches were detected under the configured comparison rules.</p>
-            {% endif %}
+                {% if not report.per_reference %}
+                    {% for reference in report.reference_documents %}
+                        <div class="source-row"><span class="source-file-icon" aria-hidden="true">DOC</span><span class="source-row-text"><strong>{{ reference }}</strong></span></div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <div class="panel methodology-panel">
+                <span class="eyebrow">HOW TO READ THIS</span>
+                <h2>Signals in context</h2>
+                <p>{{ report.methodology }}</p>
+                <div class="method-row"><span class="method-dot exact-dot"></span><span>Exact passage signal</span><strong>{{ (report.score_breakdown.exact * 100)|round(1) }}%</strong></div>
+                <div class="method-row"><span class="method-dot near-dot"></span><span>Near-exact signal</span><strong>{{ (report.score_breakdown.near_exact * 100)|round(1) }}%</strong></div>
+                <div class="method-row"><span class="method-dot tfidf-dot"></span><span>Document TF-IDF</span><strong>{{ (report.score_breakdown.tfidf * 100)|round(1) }}%</strong></div>
+            </div>
+        </aside>
+    </section>
 
-            <h2>Known limitations</h2>
-            <ul>
-                {% for limitation in report.limitations %}
-                    <li>{{ limitation }}</li>
-                {% endfor %}
-            </ul>
-
-            <p>
-                <a href="{{ url_for('download_report', report_id=report.report_id) }}">
-                    <button type="button">Download PDF report</button>
-                </a>
-            </p>
-        </div>
-    </body>
-</html>
+    <section class="limitations-note"><span aria-hidden="true">i</span><p><strong>Important:</strong> A similarity score does not determine plagiarism. Review the passages, source context, and applicable academic policies before making a decision. OCR is not available for scanned documents.</p></section>
+{% endblock %}

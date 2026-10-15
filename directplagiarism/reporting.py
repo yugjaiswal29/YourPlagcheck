@@ -32,7 +32,7 @@ class ReportGenerator:
         report_id = self._make_report_id()
         report_dir = self._ensure_safe_path(report_id)
         payload = {
-            "framework": "AI-Based Plagiarism Detection Framework",
+            "framework": "AI-Based Plagiarism Detection",
             "version": "0.1",
             "report_id": report_id,
             "submission_filename": submission_filename,
@@ -40,10 +40,11 @@ class ReportGenerator:
             "reference_documents": reference_documents,
             "overall_similarity": detector_result.get("overall_similarity", 0.0),
             "score_breakdown": detector_result.get("score_breakdown", {}),
+            "per_reference": detector_result.get("per_reference", []),
             "matching_passage_count": len(detector_result.get("matches", [])),
             "matches": detector_result.get("matches", []),
             "status": detector_result.get("status", "No qualifying matches detected"),
-            "methodology": "Normalized text comparison, sentence-level exact/near-exact overlap, and TF-IDF cosine similarity are combined to assess potential direct copying without asserting guilt from a single score.",
+            "methodology": "The overall score is the highest direct-overlap coverage against any one reference. Exact passages are matched in order after Unicode normalization; near-exact passages may bridge small insertions or deletions only when the ordered sequence remains sufficiently similar. TF-IDF cosine similarity is shown as a separate contextual signal and does not increase the direct-overlap score. These signals are not proof of plagiarism.",
             "limitations": [
                 "Text extraction can fail for unsupported or corrupted documents.",
                 "OCR for scanned PDFs is marked as work in progress unless explicitly implemented.",
@@ -95,12 +96,12 @@ class ReportGenerator:
   <meta charset='utf-8'>
   <title>Plagiarism Report {escape(str(payload.get('report_id', '')))}</title>
   <style>
-    body {{ font-family: Arial, sans-serif; margin: 2rem; background: #f7f9fc; color: #222; }}
-    .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.08); }}
-    h1, h2 {{ color: #173b6c; }}
-    .summary {{ background: #eef5ff; padding: 1rem; border-left: 6px solid #2d6cdf; margin-bottom: 1.5rem; }}
-    .match-item {{ border: 1px solid #dfe7f3; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; background: #fafcff; }}
-    mark {{ background: #fff2a8; padding: 0.1rem 0.2rem; border-radius: 4px; }}
+    body {{ font-family: Arial, sans-serif; margin: 2rem; background: #f4f6fa; color: #283750; }}
+    .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(39,61,102,.08); }}
+    h1, h2 {{ color: #405f8e; }}
+    .summary {{ background: #eef2f9; padding: 1rem; border-left: 6px solid #405f8e; margin-bottom: 1.5rem; }}
+    .match-item {{ border: 1px solid #d5d6de; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; background: #fbfcfe; }}
+    mark {{ background: #ffcc33; padding: 0.1rem 0.2rem; border-radius: 4px; }}
     code {{ background: #f2f4f7; padding: 0.2rem 0.4rem; border-radius: 4px; }}
   </style>
 </head>
@@ -144,9 +145,11 @@ class ReportGenerator:
     def generate_pdf_report(self, payload: dict, output_path: str | os.PathLike[str]) -> str:
         output = Path(output_path)
         styles = getSampleStyleSheet()
+        styles["Title"].textColor = colors.HexColor("#405f8e")
+        styles["Heading2"].textColor = colors.HexColor("#405f8e")
         story = []
 
-        story.append(Paragraph("AI-Based Plagiarism Detection Framework v0.1", styles['Title']))
+        story.append(Paragraph("AI-Based Plagiarism Detection v0.1", styles['Title']))
         story.append(Spacer(1, 0.3 * inch))
         story.append(Paragraph(f"Report ID: {payload.get('report_id', '')}", styles['Normal']))
         story.append(Paragraph(f"Submission: {payload.get('submission_filename', '')}", styles['Normal']))
@@ -170,6 +173,6 @@ class ReportGenerator:
                 story.append(Paragraph(f"Reference excerpt: {match.get('reference_excerpt', '')}", styles['Normal']))
                 story.append(Spacer(1, 0.15 * inch))
 
-        doc = SimpleDocTemplate(str(output), pagesize=letter, title="Plagiarism Report", author="YourPlagcheck")
+        doc = SimpleDocTemplate(str(output), pagesize=letter, title="AI-Based Plagiarism Detection Report", author="AI-Based Plagiarism Detection")
         doc.build(story)
         return str(output)

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block breadcrumb %}Reports{% endblock %}
+{% block content %}
+    <section class="page-intro">
+        <div class="eyebrow"><span class="eyebrow-line"></span> REPORT HISTORY</div>
+        <h1>Saved <em>reports.</em></h1>
+        <p class="lead">Open a previous analysis or download its PDF report.</p>
+    </section>
+    <section class="panel reports-panel">
+        <div class="panel-heading">
+            <div><span class="eyebrow">WORKSPACE HISTORY</span><h2>All analyses</h2></div>
+            <span class="subtle-count">{{ reports|length }} reports</span>
+        </div>
+        {% if reports %}
+            <div class="report-list">
+                {% for item in reports %}
+                    <div class="saved-report-row">
+                        <a class="saved-report-main" href="{{ url_for('view_report', report_id=item.report_id) }}">
+                            <span class="file-badge" aria-hidden="true">DOC</span>
+                            <span class="report-row-main">
+                                <strong>{{ item.submission_filename }}</strong>
+                                <small>{{ item.analysis_timestamp[:10] }} · {{ item.reference_count }} reference{% if item.reference_count != 1 %}s{% endif %} compared</small>
+                            </span>
+                        </a>
+                        <span class="score-pill {% if item.overall_similarity >= 0.2 %}score-review{% else %}score-clear{% endif %}">{{ (item.overall_similarity * 100)|round(1) }}%</span>
+                        <a class="report-open-link" href="{{ url_for('view_report', report_id=item.report_id) }}">Open report <span aria-hidden="true">→</span></a>
+                        <a class="report-download-link" href="{{ url_for('download_report', report_id=item.report_id) }}" aria-label="Download PDF for {{ item.submission_filename }}">PDF ↓</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-illustration" aria-hidden="true"><span>▧</span></div>
+                <h3>No reports yet</h3>
+                <p>Completed document comparisons will be saved here for this workspace.</p>
+                <a class="text-link" href="{{ url_for('analyze') }}">Start a direct-plagiarism analysis <span aria-hidden="true">→</span></a>
+            </div>
+        {% endif %}
+    </section>
+{% endblock %}

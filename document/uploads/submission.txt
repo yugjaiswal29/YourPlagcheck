@@ -1,1 +1,1 @@
-This document describes a Flask application for plagiarism detection using direct sentence comparison and TF-IDF similarity metrics.
+This application compares a submitted document against reference documents and highlights direct matching passages to support a careful review.

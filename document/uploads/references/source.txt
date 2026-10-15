@@ -1,0 +1,1 @@
+The AI-Based Plagiarism Framework compares a submission with reference documents and highlights matching passages for human review.

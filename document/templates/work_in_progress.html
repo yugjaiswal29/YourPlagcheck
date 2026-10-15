@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ module.title }}{% endblock %}
+{% block breadcrumb %}{{ module.title }}{% endblock %}
+{% block content %}
+    <section class="wip-page">
+        <div class="wip-card">
+            <div class="wip-art" aria-hidden="true">
+                <span class="wip-art-paper paper-one"></span>
+                <span class="wip-art-paper paper-two"></span>
+                <span class="wip-art-lens">⌕</span>
+                <span class="wip-art-spark">✦</span>
+            </div>
+            <span class="wip-status"><span></span> WORK IN PROGRESS</span>
+            <div class="eyebrow wip-eyebrow"><span class="eyebrow-line"></span> {{ module.eyebrow }}</div>
+            <h1>{{ module.title }}<br><em>is on its way.</em></h1>
+            <p class="lead wip-description">{{ module.description }}</p>
+
+            <div class="wip-plan">
+                <span class="format-label">PLANNED FOR THIS MODULE</span>
+                <ul>
+                    {% for item in module.planned %}
+                        <li><span aria-hidden="true">○</span>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="wip-actions">
+                <a class="button button-quiet" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+                <a class="button button-primary" href="{{ url_for('analyze') }}">Use direct plagiarism check <span class="button-arrow" aria-hidden="true">→</span></a>
+            </div>
+            <p class="wip-disclaimer">This module is not active yet. No analysis is performed on this page.</p>
+        </div>
+    </section>
+{% endblock %}
