@@ -227,6 +227,7 @@ class DirectPlagiarismDetector:
         return {
             "reference_document": reference_name,
             "submission_word_count": len(submission_tokens),
+            "reference_word_count": len(self._normalized_tokens(reference_text)[0]),
             "matches": matches,
             "exact_matches": sum(match["match_type"] == "exact" for match in matches),
             "near_exact_matches": sum(match["match_type"] == "near_exact" for match in matches),
@@ -260,6 +261,7 @@ class DirectPlagiarismDetector:
             "analysis_id": hashlib.sha256(
                 f"{len(comparisons)}:{overall_score}:{len(matches)}".encode("utf-8")
             ).hexdigest()[:12],
+            "submission_word_count": len(self._normalized_tokens(submission_text)[0]),
             "overall_similarity": round(overall_score, 4),
             "per_reference": comparisons,
             "matches": matches,

@@ -26,6 +26,31 @@
         </article>
         <article class="score-mini"><span class="score-mini-icon icon-lilac" aria-hidden="true">▤</span><span class="stat-label">PASSAGES FLAGGED</span><strong>{{ report.matching_passage_count }}</strong><small>Qualifying overlaps found</small></article>
         <article class="score-mini"><span class="score-mini-icon icon-mint" aria-hidden="true">⌕</span><span class="stat-label">SOURCES COMPARED</span><strong>{{ report.reference_documents|length }}</strong><small>Provided for this analysis</small></article>
+        <article class="score-mini"><span class="score-mini-icon icon-lilac" aria-hidden="true">#</span><span class="stat-label">EST. WORDS MATCHED</span><strong>{{ "{:,}".format(report.get("metrics", {}).get("matched_words_estimate", 0)) }}</strong><small>Of {{ "{:,}".format(report.get("submission_word_count", 0)) }} analyzed words</small></article>
+    </section>
+
+    <section class="panel report-chart-grid" aria-label="Analysis charts">
+        <div class="report-chart">
+            <div class="panel-heading"><div><span class="eyebrow">DIRECT OVERLAP</span><h2>Signal breakdown</h2></div></div>
+            {% for key, label, color in [("exact", "Exact passage coverage", "exact-chart"), ("near_exact", "Near-exact passage coverage", "near-chart"), ("tfidf", "TF-IDF context signal", "tfidf-chart")] %}
+                <div class="chart-row">
+                    <div class="chart-label"><span>{{ label }}</span><strong>{{ (report.score_breakdown[key] * 100)|round(1) }}%</strong></div>
+                    <div class="chart-track" role="img" aria-label="{{ label }} {{ (report.score_breakdown[key] * 100)|round(1) }} percent"><span class="{{ color }}" style="width: {{ [report.score_breakdown[key] * 100, 100]|min }}%"></span></div>
+                </div>
+            {% endfor %}
+            <p class="chart-note">TF-IDF is a contextual measure and does not increase the direct-overlap score.</p>
+        </div>
+        <div class="report-chart">
+            <div class="panel-heading"><div><span class="eyebrow">REFERENCE COMPARISON</span><h2>Similarity by source</h2></div></div>
+            {% for comparison in report.per_reference %}
+                <div class="chart-row">
+                    <div class="chart-label"><span title="{{ comparison.reference_document }}">{{ comparison.reference_document }}</span><strong>{{ (comparison.overall_similarity * 100)|round(1) }}%</strong></div>
+                    <div class="chart-track" role="img" aria-label="{{ comparison.reference_document }} {{ (comparison.overall_similarity * 100)|round(1) }} percent"><span class="source-chart" style="width: {{ [comparison.overall_similarity * 100, 100]|min }}%"></span></div>
+                </div>
+            {% else %}
+                <p class="chart-note">No reference comparison data is available.</p>
+            {% endfor %}
+        </div>
     </section>
 
     <section class="report-columns">
@@ -42,7 +67,8 @@
                                 <span class="match-type {% if match.match_type == 'exact' %}match-exact{% else %}match-near{% endif %}"><span></span>{{ match.match_type|replace('_', ' ')|title }} match</span>
                                 <span class="evidence-score">{{ (match.similarity * 100)|round(0)|int }}% sequence similarity</span>
                             </div>
-                            <div class="evidence-source"><span class="source-icon" aria-hidden="true">↗</span><span><small>REFERENCE SOURCE</small><strong>{{ match.reference_document }}</strong></span><span class="word-count">{{ match.length }} words</span></div>
+                            <div class="evidence-source"><span class="source-icon" aria-hidden="true">↗</span><span><small>REFERENCE SOURCE</small><strong>{{ match.reference_document }}</strong></span><span class="word-count">{{ match.get("matched_word_count", match.length) }} matched words</span></div>
+                            <div class="evidence-locations"><span>Submission sentence {{ match.submission_index + 1 }}</span><span>Reference sentence {{ match.reference_index + 1 }}</span></div>
                             <div class="passage-block {% if match.match_type == 'exact' %}passage-exact{% endif %}"><span class="passage-label">SUBMISSION</span><p><mark>{{ match.submission_excerpt }}</mark></p></div>
                             <div class="passage-block passage-reference"><span class="passage-label">REFERENCE</span><p>{{ match.reference_excerpt }}</p></div>
                         </article>

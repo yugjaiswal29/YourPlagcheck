@@ -300,7 +300,7 @@ class ReportGenerator:
             ("EST. MATCHED WORDS", f"{int(metrics.get('matched_words_estimate', 0)):,}"),
             ("SOURCES COMPARED", str(source_count)),
         ]
-        card_width = letter[0] - 1.25 * inch
+        card_width = letter[0] - 1.3 * inch
         cell_width = card_width / len(cards)
         card_table = Table(
             [
@@ -328,12 +328,12 @@ class ReportGenerator:
             para("Evidence-led comparison summary for human review", "ReportSubtitle"),
         ]
         metadata = [
-            [para("<b>Submission</b>", "ReportSmall"), para(payload.get("submission_filename", "unknown"), "ReportSmall"),
-             para("<b>Report ID</b>", "ReportSmall"), para(payload.get("report_id", ""), "ReportSmall")],
-            [para("<b>Generated</b>", "ReportSmall"), para(payload.get("analysis_timestamp", ""), "ReportSmall"),
-             para("<b>Words analyzed</b>", "ReportSmall"), para(f"{word_count:,}", "ReportSmall")],
+            [para("Submission", "ReportSmall"), para(payload.get("submission_filename", "unknown"), "ReportSmall"),
+             para("Report ID", "ReportSmall"), para(payload.get("report_id", ""), "ReportSmall")],
+            [para("Generated", "ReportSmall"), para(payload.get("analysis_timestamp", ""), "ReportSmall"),
+             para("Words analyzed", "ReportSmall"), para(f"{word_count:,}", "ReportSmall")],
         ]
-        meta_table = Table(metadata, colWidths=[0.7*inch, 2.55*inch, 0.7*inch, 2.8*inch])
+        meta_table = Table(metadata, colWidths=[0.75*inch, 2.55*inch, 0.75*inch, 3.15*inch])
         meta_table.setStyle(TableStyle([
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("LEFTPADDING", (0, 0), (-1, -1), 3),
