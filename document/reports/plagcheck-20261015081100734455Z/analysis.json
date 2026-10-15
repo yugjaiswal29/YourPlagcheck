@@ -1,0 +1,36 @@
+{
+  "framework": "AI-Based Plagiarism Detection Framework",
+  "version": "0.1",
+  "report_id": "plagcheck-20261015081100734455Z",
+  "submission_filename": "submission.txt",
+  "analysis_timestamp": "2026-10-15T08:11:00.735139+00:00",
+  "reference_documents": [
+    "reference.txt"
+  ],
+  "overall_similarity": 0.7,
+  "score_breakdown": {
+    "exact": 1.0,
+    "near_exact": 0.0,
+    "tfidf": 1.0
+  },
+  "matching_passage_count": 1,
+  "matches": [
+    {
+      "match_type": "exact",
+      "submission_index": 0,
+      "reference_index": 0,
+      "length": 18,
+      "similarity": 1.0,
+      "submission_excerpt": "This document describes a Flask application for plagiarism detection using direct sentence comparison and TF-IDF similarity metrics. this document describes a flask application...",
+      "reference_excerpt": "This document describes a Flask application for plagiarism detection using direct sentence comparison and TF-IDF similarity metrics. this document describes a flask application..."
+    }
+  ],
+  "status": "Review required",
+  "methodology": "Normalized text comparison, sentence-level exact/near-exact overlap, and TF-IDF cosine similarity are combined to assess potential direct copying without asserting guilt from a single score.",
+  "limitations": [
+    "Text extraction can fail for unsupported or corrupted documents.",
+    "OCR for scanned PDFs is marked as work in progress unless explicitly implemented.",
+    "Some phrase reuse may be legitimate common wording, so the engine reports evidence rather than definitive plagiarism."
+  ],
+  "known_detection_status": "Document comparison completed using configured thresholds. Results indicate evidence of direct overlap only when qualifying passage matches are present."
+}

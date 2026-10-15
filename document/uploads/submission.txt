@@ -1,1 +1,1 @@
-This project uses a Flask application and a direct plagiarism detector for document analysis. It checks exact overlap and repeated phrases across reference documents.
+This document describes a Flask application for plagiarism detection using direct sentence comparison and TF-IDF similarity metrics.
