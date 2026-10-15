@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='utf-8'>
+  <title>Plagiarism Report plagcheck-20261015093828728803Z</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f4f6fa; color: #283750; }
+    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(39,61,102,.08); }
+    h1, h2 { color: #405f8e; }
+    .summary { background: #eef2f9; padding: 1rem; border-left: 6px solid #405f8e; margin-bottom: 1.5rem; }
+    .match-item { border: 1px solid #d5d6de; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; background: #fbfcfe; }
+    mark { background: #ffcc33; padding: 0.1rem 0.2rem; border-radius: 4px; }
+    code { background: #f2f4f7; padding: 0.2rem 0.4rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class='container'>
+    <h1>AI-Based Plagiarism Detection v0.1</h1>
+    <div class='summary'>
+      <p><strong>Report ID:</strong> <code>plagcheck-20261015093828728803Z</code></p>
+      <p><strong>Submission:</strong> srs.pdf</p>
+      <p><strong>Analysis timestamp:</strong> 2026-10-15T09:38:28.729129+00:00</p>
+      <p><strong>Overall similarity:</strong> 0.0336</p>
+      <p><strong>Status:</strong> Review required</p>
+    </div>
+
+    <h2>Methodology</h2>
+    <p>The overall score is the highest direct-overlap coverage against any one reference. Exact passages are matched in order after Unicode normalization; near-exact passages may bridge small insertions or deletions only when the ordered sequence remains sufficiently similar. TF-IDF cosine similarity is shown as a separate contextual signal and does not increase the direct-overlap score. These signals are not proof of plagiarism.</p>
+
+    <h2>Score Breakdown</h2>
+    <ul>
+      <li>Exact similarity: 0.0231</li>
+      <li>Near-exact similarity: 0.0105</li>
+      <li>TF-IDF cosine similarity: 0.4207</li>
+    </ul>
+
+    <h2>Reference documents compared</h2>
+    <ul>
+      <li>minor evaluation.pdf</li>
+    </ul>
+
+    <h2>Matching passages</h2>
+    <div class='match-item'><h3>minor evaluation.pdf</h3><p><strong>Type:</strong> exact | <strong>Similarity:</strong> 1.0</p><p><strong>Submission excerpt:</strong> <mark>project proposes an AI-powered</mark></p><p><strong>Reference excerpt:</strong> project proposes an AI-powered</p></div><div class='match-item'><h3>minor evaluation.pdf</h3><p><strong>Type:</strong> exact | <strong>Similarity:</strong> 1.0</p><p><strong>Submission excerpt:</strong> <mark>Detect paraphrased plagiarism using semantic similarity.</mark></p><p><strong>Reference excerpt:</strong> Detect Paraphrased Plagiarism using semantic similarity.</p></div><div class='match-item'><h3>minor evaluation.pdf</h3><p><strong>Type:</strong> near_exact | <strong>Similarity:</strong> 0.8333</p><p><strong>Submission excerpt:</strong> <mark>semantic similarity analysis. AI Text Analysis</mark></p><p><strong>Reference excerpt:</strong> Semantic Similarity AI Text Analysis</p></div>
+
+    <h2>Limitations</h2>
+    <ul>
+      <li>Text extraction can fail for unsupported or corrupted documents.</li><li>OCR for scanned PDFs is marked as work in progress unless explicitly implemented.</li><li>Some phrase reuse may be legitimate common wording, so the engine reports evidence rather than definitive plagiarism.</li>
+    </ul>
+  </div>
+</body>
+</html>

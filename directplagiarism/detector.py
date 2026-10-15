@@ -203,6 +203,8 @@ class DirectPlagiarismDetector:
         if not submission_text.strip() or not reference_text.strip():
             return {
                 "reference_document": reference_name,
+                "submission_word_count": len(self._normalized_tokens(submission_text)[0]),
+                "reference_word_count": len(self._normalized_tokens(reference_text)[0]),
                 "matches": [],
                 "exact_matches": 0,
                 "near_exact_matches": 0,
@@ -224,6 +226,7 @@ class DirectPlagiarismDetector:
             match.pop("_submission_word_indices")
         return {
             "reference_document": reference_name,
+            "submission_word_count": len(submission_tokens),
             "matches": matches,
             "exact_matches": sum(match["match_type"] == "exact" for match in matches),
             "near_exact_matches": sum(match["match_type"] == "near_exact" for match in matches),
