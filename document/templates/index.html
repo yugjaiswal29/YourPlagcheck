@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>YourPlagcheck Dashboard</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>AI-Based Plagiarism Detection Framework</h1>
+                <p>Version 0.1 dashboard</p>
+            </header>
+
+            <div class="summary-box">
+                <p>Upload a submission document and one or more reference documents to review direct-copy overlap, sentence-level matches, and similarity evidence.</p>
+                <p><strong>Supported formats:</strong> TXT, PDF, DOCX, and legacy DOC (imported only when the file can be processed).</p>
+            </div>
+
+            <p><a href="{{ url_for('analyze') }}"><button type="button">Open analysis workspace</button></a></p>
+        </div>
+    </body>
+</html>

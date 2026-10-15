@@ -1,0 +1,49 @@
+website 
+    Home
+        - Developer
+        - Mentor
+        - What the system does
+        - Features
+        - How it works
+    
+    DashBoard
+        - Documents Analyzed(in the given range)---> Analyze Document
+        - Average Similarity
+        - Ai-likelihood
+        - Require Review
+        - Recent Analyses
+        - six Month Trend
+
+    Analyze Document
+        -upload pdf,docx or Txt
+        -text feild
+        -doc name
+        -author name
+    
+    Ai Generated Text
+        - analyze document(input ) 
+        -Report of that text.
+
+    Plagrism 
+        -Analyze Document
+        -Generate Report
+    
+    Cross Document
+        - queue the docs(selecting the no. of document afte plag and ai analysis) 
+        - Similarity matrix(max 5-7)
+        -Docs. pairs by overlap
+    
+    Documents(act as book mark)
+    -Generated report 
+                    -details
+                    -ovrall risk
+                    -plagirsm Similarity%
+                    -ai gen %
+                    -Susspicious Pasage
+                    -Sources Matched
+                    -Evidence
+                    - Matched sources( direct match)
+                    - Recommendations
+  
+    -Submission Library
+

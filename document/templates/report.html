@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Plagiarism Report</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>{{ report.framework }} v{{ report.version }}</h1>
+                <p>Report ID: <strong>{{ report.report_id }}</strong></p>
+            </header>
+
+            <div class="summary-box">
+                <p><strong>Submission:</strong> {{ report.submission_filename }}</p>
+                <p><strong>Analysis time:</strong> {{ report.analysis_timestamp }}</p>
+                <p><strong>Overall similarity:</strong> {{ report.overall_similarity }}</p>
+                <p><strong>Status:</strong> {{ report.status }}</p>
+            </div>
+
+            <h2>Methodology</h2>
+            <p>{{ report.methodology }}</p>
+
+            <h2>Score breakdown</h2>
+            <ul>
+                <li>Exact similarity: {{ report.score_breakdown.exact }}</li>
+                <li>Near-exact similarity: {{ report.score_breakdown.near_exact }}</li>
+                <li>TF-IDF cosine similarity: {{ report.score_breakdown.tfidf }}</li>
+            </ul>
+
+            <h2>Reference documents compared</h2>
+            <ul>
+                {% for reference in report.reference_documents %}
+                    <li>{{ reference }}</li>
+                {% endfor %}
+            </ul>
+
+            <h2>Matching passages</h2>
+            {% if report.matches %}
+                {% for match in report.matches %}
+                    <div class="match-item">
+                        <p class="meta"><strong>Reference:</strong> {{ match.reference_document }} | <strong>Type:</strong> {{ match.match_type }} | <strong>Similarity:</strong> {{ match.similarity }}</p>
+                        <p><strong>Submission excerpt:</strong> <mark>{{ match.submission_excerpt }}</mark></p>
+                        <p><strong>Reference excerpt:</strong> {{ match.reference_excerpt }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No qualifying matches were detected under the configured comparison rules.</p>
+            {% endif %}
+
+            <h2>Known limitations</h2>
+            <ul>
+                {% for limitation in report.limitations %}
+                    <li>{{ limitation }}</li>
+                {% endfor %}
+            </ul>
+
+            <p>
+                <a href="{{ url_for('download_report', report_id=report.report_id) }}">
+                    <button type="button">Download PDF report</button>
+                </a>
+            </p>
+        </div>
+    </body>
+</html>

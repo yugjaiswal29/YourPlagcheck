@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Analyze Document</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>Direct Plagiarism Analysis</h1>
+                <p>Upload a submission and reference materials for comparison.</p>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" enctype="multipart/form-data" class="form-grid">
+                <div>
+                    <label for="document">Submission document</label>
+                    <div class="upload-box">
+                        <input type="file" name="document" id="document" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="reference_documents">Reference documents</label>
+                    <div class="upload-box">
+                        <input type="file" name="reference_documents" id="reference_documents" multiple required>
+                    </div>
+                </div>
+
+                <button type="submit">Run analysis</button>
+            </form>
+        </div>
+    </body>
+</html>
